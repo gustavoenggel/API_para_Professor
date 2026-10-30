@@ -448,7 +448,15 @@ if consulta:
                         axis=alt.Axis(labelLimit=420),
                     ),
                     yOffset=alt.YOffset("Tipo:N"),
-                    x=alt.X("Valor:Q", scale=escala, title="Valor (R$)", axis=alt.Axis(format="~s")),
+                    x=alt.X("Valor:Q", scale=escala, title="Valor (R$)", axis=alt.Axis(
+                            labelExpr=(
+                                "datum.value >= 1e9 ? replace(format(datum.value / 1e9, '.1~f'), '.', ',') + ' bi' : "
+                                "datum.value >= 1e6 ? replace(format(datum.value / 1e6, '.1~f'), '.', ',') + ' mi' : "
+                                "datum.value >= 1e3 ? replace(format(datum.value / 1e3, '.1~f'), '.', ',') + ' mil' : "
+                                "datum.value"
+                            )
+                        ),
+                    ),
                     color=alt.Color(
                         "Tipo:N",
                         scale=alt.Scale(domain=["Empenhado", "Pago"], range=[AZUL, VERDE]),
