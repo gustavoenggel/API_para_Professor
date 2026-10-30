@@ -2,6 +2,7 @@ import base64
 import os
 from pathlib import Path
 
+import altair as alt
 import pandas as pd
 import requests
 import streamlit as st
@@ -424,8 +425,40 @@ if consulta:
 
         with aba_grafico:
             st.subheader("10 entidades com maior valor pago")
-            top = df.sort_values("Pago", ascending=False).head(10).set_index("Entidade")
-            st.bar_chart(top[["Empenhado", "Pago"]], color=[AZUL, VERDE])
+            top = df.sort_values("Pago", ascending=False).head(10)
+            longo = top.melt(
+                id_vars="Entidade",
+                value_vars=["Empenhado", "Pago"],
+                var_name="Tipo",
+                value_name="Valor",
+            )
+            longo["Valor formatado"] = longo["Valor"].apply(brl)
+            usar_log = st.checkbox(
+                "Escala logarítmica (facilita ver as entidades menores)", value=False
+            )
+            escala = alt.Scale(type="symlog") if usar_log else alt.Scale(type="linear")
+            grafico = (
+                alt.Chart(longo)
+                .mark_bar()
+                .encode(
+                    y=alt.Y(
+                        "Entidade:N",
+                        sort=top["Entidade"].tolist(),
+                        title=None,
+                        axis=alt.Axis(labelLimit=420),
+                    ),
+                    yOffset=alt.YOffset("Tipo:N"),
+                    x=alt.X("Valor:Q", scale=escala, title="Valor (R$)", axis=alt.Axis(format="~s")),
+                    color=alt.Color(
+                        "Tipo:N",
+                        scale=alt.Scale(domain=["Empenhado", "Pago"], range=[AZUL, VERDE]),
+                        legend=alt.Legend(orient="top", title=None),
+                    ),
+                    tooltip=["Entidade", "Tipo", "Valor formatado"],
+                )
+                .properties(height=max(300, 55 * len(top)))
+            )
+            st.altair_chart(grafico, use_container_width=True)
 
         with aba_detalhes:
             for _, linha in df.sort_values("Pago", ascending=False).iterrows():
